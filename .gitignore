@@ -38,3 +38,6 @@ social_scribe-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Ignore editor and OS files.
+CLAUDE.md
+/plans/

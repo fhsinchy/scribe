@@ -191,6 +191,7 @@ defmodule SocialScribeWeb.ModalComponents do
   attr :firstname, :string, default: ""
   attr :lastname, :string, default: ""
   attr :size, :atom, default: :md, values: [:sm, :md, :lg]
+  attr :crm, :atom, default: :hubspot, values: [:hubspot, :salesforce]
   attr :class, :string, default: nil
 
   def avatar(assigns) do
@@ -200,11 +201,20 @@ defmodule SocialScribeWeb.ModalComponents do
       lg: "h-10 w-10 text-sm"
     }
 
-    assigns = assign(assigns, :size_class, size_classes[assigns.size])
+    crm_colors = %{
+      hubspot: "bg-hubspot-avatar text-hubspot-avatar-text",
+      salesforce: "bg-salesforce-avatar text-salesforce-avatar-text"
+    }
+
+    assigns =
+      assigns
+      |> assign(:size_class, size_classes[assigns.size])
+      |> assign(:crm_class, crm_colors[assigns.crm])
 
     ~H"""
     <div class={[
-      "rounded-full bg-hubspot-avatar flex items-center justify-center font-semibold text-hubspot-avatar-text flex-shrink-0",
+      "rounded-full flex items-center justify-center font-semibold flex-shrink-0",
+      @crm_class,
       @size_class,
       @class
     ]}>
@@ -551,25 +561,24 @@ defmodule SocialScribeWeb.ModalComponents do
   end
 
   @doc """
-  Renders a HubSpot-styled modal wrapper.
+  Renders a generic CRM-styled modal wrapper.
 
-  This is a specialized modal with HubSpot-specific styling:
-  - Custom overlay color
-  - Reduced padding
-  - No close button (relies on Cancel button in footer)
+  This is a base modal for CRM integrations with configurable overlay styling.
+  Use `hubspot_modal/1` or `salesforce_modal/1` for pre-configured variants.
 
   ## Examples
 
-      <.hubspot_modal id="hubspot-modal" show on_cancel={JS.patch(~p"/back")}>
+      <.crm_modal id="crm-modal" show overlay_class="bg-hubspot-overlay/90" on_cancel={JS.patch(~p"/back")}>
         Modal content here
-      </.hubspot_modal>
+      </.crm_modal>
   """
   attr :id, :string, required: true
   attr :show, :boolean, default: false
   attr :on_cancel, JS, default: %JS{}
+  attr :overlay_class, :string, default: "bg-hubspot-overlay/90"
   slot :inner_block, required: true
 
-  def hubspot_modal(assigns) do
+  def crm_modal(assigns) do
     ~H"""
     <div
       id={@id}
@@ -578,7 +587,7 @@ defmodule SocialScribeWeb.ModalComponents do
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
       class="relative z-50 hidden"
     >
-      <div id={"#{@id}-bg"} class="bg-hubspot-overlay/90 fixed inset-0 transition-opacity" aria-hidden="true" />
+      <div id={"#{@id}-bg"} class={[@overlay_class, "fixed inset-0 transition-opacity"]} aria-hidden="true" />
       <div
         class="fixed inset-0 overflow-y-auto"
         aria-labelledby={"#{@id}-title"}
@@ -605,6 +614,51 @@ defmodule SocialScribeWeb.ModalComponents do
       </div>
     </div>
     """
+  end
+
+  @doc """
+  Renders a HubSpot-styled modal wrapper.
+
+  This is a specialized modal with HubSpot-specific styling:
+  - Custom overlay color
+  - Reduced padding
+  - No close button (relies on Cancel button in footer)
+
+  ## Examples
+
+      <.hubspot_modal id="hubspot-modal" show on_cancel={JS.patch(~p"/back")}>
+        Modal content here
+      </.hubspot_modal>
+  """
+  attr :id, :string, required: true
+  attr :show, :boolean, default: false
+  attr :on_cancel, JS, default: %JS{}
+  slot :inner_block, required: true
+
+  def hubspot_modal(assigns) do
+    assigns = assign(assigns, :overlay_class, "bg-hubspot-overlay/90")
+    crm_modal(assigns)
+  end
+
+  @doc """
+  Renders a Salesforce-styled modal wrapper.
+
+  Same structure as `hubspot_modal/1` but with Salesforce overlay styling.
+
+  ## Examples
+
+      <.salesforce_modal id="salesforce-modal" show on_cancel={JS.patch(~p"/back")}>
+        Modal content here
+      </.salesforce_modal>
+  """
+  attr :id, :string, required: true
+  attr :show, :boolean, default: false
+  attr :on_cancel, JS, default: %JS{}
+  slot :inner_block, required: true
+
+  def salesforce_modal(assigns) do
+    assigns = assign(assigns, :overlay_class, "bg-salesforce-overlay/90")
+    crm_modal(assigns)
   end
 
   defp show_modal(js \\ %JS{}, id) when is_binary(id) do

@@ -9,6 +9,9 @@ defmodule SocialScribe.AIContentGenerator do
   @gemini_model "gemini-2.0-flash-lite"
   @gemini_api_base_url "https://generativelanguage.googleapis.com/v1beta/models"
 
+  @hubspot_fields ~w(firstname lastname email phone mobilephone company jobtitle address city state zip country website linkedin_url twitter_handle)
+  @salesforce_fields ~w(FirstName LastName Email Phone MobilePhone Title Department MailingStreet MailingCity MailingState MailingPostalCode MailingCountry)
+
   @impl SocialScribe.AIContentGeneratorApi
   def generate_follow_up_email(meeting) do
     case Meetings.generate_prompt_for_meeting(meeting) do
@@ -47,32 +50,42 @@ defmodule SocialScribe.AIContentGenerator do
 
   @impl SocialScribe.AIContentGeneratorApi
   def generate_hubspot_suggestions(meeting) do
+    generate_crm_suggestions(meeting, crm: :hubspot)
+  end
+
+  @impl SocialScribe.AIContentGeneratorApi
+  def generate_crm_suggestions(meeting, opts \\ []) do
+    crm = Keyword.get(opts, :crm, :hubspot)
+    fields = Keyword.get(opts, :fields, fields_for_crm(crm))
+
     case Meetings.generate_prompt_for_meeting(meeting) do
       {:error, reason} ->
         {:error, reason}
 
       {:ok, meeting_prompt} ->
+        field_list = Enum.join(fields, ", ")
+
         prompt = """
         You are an AI assistant that extracts contact information updates from meeting transcripts.
 
         Analyze the following meeting transcript and extract any information that could be used to update a CRM contact record.
 
         Look for mentions of:
-        - Phone numbers (phone, mobilephone)
-        - Email addresses (email)
-        - Company name (company)
-        - Job title/role (jobtitle)
-        - Physical address details (address, city, state, zip, country)
-        - Website URLs (website)
-        - LinkedIn profile (linkedin_url)
-        - Twitter handle (twitter_handle)
+        - Phone numbers
+        - Email addresses
+        - Company name
+        - Job title/role
+        - Physical address details
+        - Website URLs
+        - LinkedIn profile
+        - Twitter handle
 
         IMPORTANT: Only extract information that is EXPLICITLY mentioned in the transcript. Do not infer or guess.
 
         The transcript includes timestamps in [MM:SS] format at the start of each line.
 
         Return your response as a JSON array of objects. Each object should have:
-        - "field": the CRM field name (use exactly: firstname, lastname, email, phone, mobilephone, company, jobtitle, address, city, state, zip, country, website, linkedin_url, twitter_handle)
+        - "field": the CRM field name (use exactly one of: #{field_list})
         - "value": the extracted value
         - "context": a brief quote of where this was mentioned
         - "timestamp": the timestamp in MM:SS format where this was mentioned
@@ -81,8 +94,8 @@ defmodule SocialScribe.AIContentGenerator do
 
         Example response format:
         [
-          {"field": "phone", "value": "555-123-4567", "context": "John mentioned 'you can reach me at 555-123-4567'", "timestamp": "01:23"},
-          {"field": "company", "value": "Acme Corp", "context": "Sarah said she just joined Acme Corp", "timestamp": "05:47"}
+          {"field": "#{List.first(fields)}", "value": "555-123-4567", "context": "John mentioned 'you can reach me at 555-123-4567'", "timestamp": "01:23"},
+          {"field": "#{Enum.at(fields, 2)}", "value": "john@example.com", "context": "John shared his email", "timestamp": "05:47"}
         ]
 
         ONLY return valid JSON, no other text.
@@ -93,7 +106,7 @@ defmodule SocialScribe.AIContentGenerator do
 
         case call_gemini(prompt) do
           {:ok, response} ->
-            parse_hubspot_suggestions(response)
+            parse_crm_suggestions(response)
 
           {:error, reason} ->
             {:error, reason}
@@ -101,7 +114,10 @@ defmodule SocialScribe.AIContentGenerator do
     end
   end
 
-  defp parse_hubspot_suggestions(response) do
+  defp fields_for_crm(:hubspot), do: @hubspot_fields
+  defp fields_for_crm(:salesforce), do: @salesforce_fields
+
+  defp parse_crm_suggestions(response) do
     # Clean up the response - remove markdown code blocks if present
     cleaned =
       response

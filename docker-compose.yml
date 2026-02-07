@@ -3,13 +3,12 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
       PHX_SERVER: "true"
       PHX_HOST: "social-scribe.farhan.dev"
       PORT: "4000"
-      DATABASE_URL: "ecto://postgres:postgres@host.docker.internal:5432/social_scribe"
+      DATABASE_URL: "ecto://postgres:postgres@db:5432/social_scribe"
+      ERL_INETRC: "/app/etc/erl_inetrc"
     depends_on:
       db:
         condition: service_healthy
@@ -19,8 +18,6 @@ services:
   db:
     image: postgres:16
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

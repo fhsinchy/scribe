@@ -236,8 +236,9 @@ meetings_data = [
   }
 ]
 
-for meeting_data <- meetings_data do
-  event_id = "seed_event_#{System.unique_integer([:positive])}"
+for {meeting_data, idx} <- Enum.with_index(meetings_data) do
+  slug = meeting_data.summary |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "_")
+  event_id = "seed_event_#{slug}"
 
   # Check if this meeting already exists (idempotent)
   existing =
@@ -273,7 +274,7 @@ for meeting_data <- meetings_data do
     # Recall bot
     {:ok, bot} =
       SocialScribe.Bots.create_recall_bot(%{
-        recall_bot_id: "seed_bot_#{System.unique_integer([:positive])}",
+        recall_bot_id: "seed_bot_#{slug}",
         status: "done",
         meeting_url: meeting_data.hangout_link,
         user_id: user.id,

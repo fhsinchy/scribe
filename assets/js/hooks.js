@@ -43,14 +43,12 @@ Hooks.ChatInput = {
         this.textarea.addEventListener("keydown", (e) => {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault()
-                const content = this.textarea.value.trim()
-                if (content !== "") {
-                    this.pushEvent("send_message", { content: content })
-                    this.textarea.value = ""
-                    this.resize()
-                    this.pushEvent("clear_mention_search", {})
-                }
+                this.submitMessage()
             }
+        })
+
+        this.el.addEventListener("submit-chat", () => {
+            this.submitMessage()
         })
 
         this.handleEvent("contact_tagged", ({ name }) => {
@@ -65,6 +63,15 @@ Hooks.ChatInput = {
             this.textarea.focus()
             this.resize()
         })
+    },
+    submitMessage() {
+        const content = this.textarea.value.trim()
+        if (content !== "") {
+            this.pushEvent("send_message", { content: content })
+            this.textarea.value = ""
+            this.resize()
+            this.pushEvent("clear_mention_search", {})
+        }
     },
     resize() {
         this.textarea.style.height = "auto"

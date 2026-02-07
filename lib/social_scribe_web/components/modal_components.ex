@@ -33,8 +33,16 @@ defmodule SocialScribeWeb.ModalComponents do
   attr :target, :any, default: nil
   attr :error, :string, default: nil
   attr :id, :string, default: "contact-select"
+  attr :crm, :atom, default: :hubspot, values: [:hubspot, :salesforce]
 
   def contact_select(assigns) do
+    crm_classes = %{
+      hubspot: %{border: "border-hubspot-input", icon: "text-hubspot-icon"},
+      salesforce: %{border: "border-salesforce-input", icon: "text-salesforce-icon"}
+    }
+
+    assigns = assign(assigns, :crm_classes, crm_classes[assigns.crm])
+
     ~H"""
     <div class="space-y-1">
       <label for={"#{@id}-input"} class="block text-sm font-medium text-slate-700">
@@ -50,7 +58,10 @@ defmodule SocialScribeWeb.ModalComponents do
             aria-haspopup="listbox"
             aria-expanded={to_string(@open)}
             aria-controls={"#{@id}-listbox"}
-            class="relative w-full bg-white border border-hubspot-input rounded-lg pl-1.5 pr-10 py-[5px] text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            class={[
+              "relative w-full bg-white border rounded-lg pl-1.5 pr-10 py-[5px] text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm",
+              @crm_classes.border
+            ]}
           >
             <span class="flex items-center">
               <.avatar
@@ -63,7 +74,7 @@ defmodule SocialScribeWeb.ModalComponents do
               </span>
             </span>
             <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-              <.icon name="hero-chevron-up-down" class="h-5 w-5 text-hubspot-icon" />
+              <.icon name="hero-chevron-up-down" class={"h-5 w-5 #{@crm_classes.icon}"} />
             </span>
           </button>
         <% else %>
@@ -83,13 +94,16 @@ defmodule SocialScribeWeb.ModalComponents do
               aria-autocomplete="list"
               aria-expanded={to_string(@open)}
               aria-controls={"#{@id}-listbox"}
-              class="w-full bg-white border border-hubspot-input rounded-lg pl-2 pr-10 py-[5px] text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              class={[
+                "w-full bg-white border rounded-lg pl-2 pr-10 py-[5px] text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm",
+                @crm_classes.border
+              ]}
             />
             <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
               <%= if @loading do %>
-                <.icon name="hero-arrow-path" class="h-5 w-5 text-hubspot-icon animate-spin" />
+                <.icon name="hero-arrow-path" class={"h-5 w-5 animate-spin #{@crm_classes.icon}"} />
               <% else %>
-                <.icon name="hero-chevron-up-down" class="h-5 w-5 text-hubspot-icon" />
+                <.icon name="hero-chevron-up-down" class={"h-5 w-5 #{@crm_classes.icon}"} />
               <% end %>
             </span>
           </div>
@@ -310,8 +324,16 @@ defmodule SocialScribeWeb.ModalComponents do
   attr :current_value, :string, default: nil
   attr :new_value, :string, required: true
   attr :class, :string, default: nil
+  attr :crm, :atom, default: :hubspot, values: [:hubspot, :salesforce]
 
   def value_comparison(assigns) do
+    crm_classes = %{
+      hubspot: %{input: "border-hubspot-input"},
+      salesforce: %{input: "border-salesforce-input"}
+    }
+
+    assigns = assign(assigns, :crm_classes, crm_classes[assigns.crm])
+
     ~H"""
     <div class={["flex items-center gap-6", @class]}>
       <div class="flex-1">
@@ -321,7 +343,8 @@ defmodule SocialScribeWeb.ModalComponents do
           value={@current_value || ""}
           placeholder="No existing value"
           class={[
-            "block w-full shadow-sm text-sm bg-white border border-hubspot-input rounded-[7px] py-1.5 px-2",
+            "block w-full shadow-sm text-sm bg-white border rounded-[7px] py-1.5 px-2",
+            @crm_classes.input,
             if(@current_value && @current_value != "",
               do: "line-through text-slate-500",
               else: "text-slate-400"
@@ -337,7 +360,10 @@ defmodule SocialScribeWeb.ModalComponents do
           type="text"
           readonly
           value={@new_value}
-          class="block w-full shadow-sm text-sm text-slate-900 bg-white border border-hubspot-input rounded-[7px] py-1.5 px-2 focus:ring-blue-500 focus:border-blue-500"
+          class={[
+            "block w-full shadow-sm text-sm text-slate-900 bg-white border rounded-[7px] py-1.5 px-2 focus:ring-blue-500 focus:border-blue-500",
+            @crm_classes.input
+          ]}
         />
       </div>
     </div>
@@ -353,10 +379,36 @@ defmodule SocialScribeWeb.ModalComponents do
   """
   attr :suggestion, :map, required: true
   attr :class, :string, default: nil
+  attr :crm, :atom, default: :hubspot, values: [:hubspot, :salesforce]
 
   def suggestion_card(assigns) do
+    crm_classes = %{
+      hubspot: %{
+        card: "bg-hubspot-card",
+        checkbox: "text-hubspot-checkbox accent-hubspot-checkbox",
+        pill: "bg-hubspot-pill",
+        pill_text: "text-hubspot-pill-text",
+        hide: "text-hubspot-hide hover:text-hubspot-hide-hover",
+        link: "text-hubspot-link hover:text-hubspot-link-hover",
+        input: "border-hubspot-input",
+        arrow: "text-hubspot-arrow"
+      },
+      salesforce: %{
+        card: "bg-salesforce-card",
+        checkbox: "text-salesforce-checkbox accent-salesforce-checkbox",
+        pill: "bg-salesforce-pill",
+        pill_text: "text-salesforce-pill-text",
+        hide: "text-salesforce-hide hover:text-salesforce-hide-hover",
+        link: "text-salesforce-link hover:text-salesforce-link-hover",
+        input: "border-salesforce-input",
+        arrow: "text-salesforce-arrow"
+      }
+    }
+
+    assigns = assign(assigns, :crm_classes, crm_classes[assigns.crm])
+
     ~H"""
-    <div class={["bg-hubspot-card rounded-2xl p-6 mb-4", @class]}>
+    <div class={[@crm_classes.card, "rounded-2xl p-6 mb-4", @class]}>
       <div class="flex items-start justify-between">
         <div class="flex items-start gap-3">
           <div class="flex items-center h-5 pt-0.5">
@@ -364,7 +416,10 @@ defmodule SocialScribeWeb.ModalComponents do
               type="checkbox"
               checked={@suggestion.apply}
               phx-click={JS.dispatch("click", to: "#suggestion-apply-#{@suggestion.field}")}
-              class="h-4 w-4 rounded-[3px] border-slate-300 text-hubspot-checkbox accent-hubspot-checkbox focus:ring-0 focus:ring-offset-0 cursor-pointer"
+              class={[
+                "h-4 w-4 rounded-[3px] border-slate-300 focus:ring-0 focus:ring-offset-0 cursor-pointer",
+                @crm_classes.checkbox
+              ]}
             />
           </div>
           <div class="text-sm font-semibold text-slate-900 leading-5">{@suggestion.label}</div>
@@ -373,17 +428,16 @@ defmodule SocialScribeWeb.ModalComponents do
         <div class="flex items-center gap-3 pt-0.5">
           <span
             class={[
-              "inline-flex items-center rounded-full bg-hubspot-pill px-2 py-1 text-xs font-medium text-hubspot-pill-text",
+              "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
+              @crm_classes.pill,
+              @crm_classes.pill_text,
               if(@suggestion.apply, do: "opacity-100", else: "opacity-0 pointer-events-none")
             ]}
             aria-hidden={to_string(!@suggestion.apply)}
           >
             1 update selected
           </span>
-          <button
-            type="button"
-            class="text-xs text-hubspot-hide hover:text-hubspot-hide-hover font-medium"
-          >
+          <button type="button" class={["text-xs font-medium", @crm_classes.hide]}>
             Hide details
           </button>
         </div>
@@ -399,7 +453,10 @@ defmodule SocialScribeWeb.ModalComponents do
             name={"apply[#{@suggestion.field}]"}
             value="1"
             checked={@suggestion.apply}
-            class="absolute -left-8 top-1/2 -translate-y-1/2 h-4 w-4 rounded-[3px] border-slate-300 text-hubspot-checkbox accent-hubspot-checkbox focus:ring-0 focus:ring-offset-0 cursor-pointer"
+            class={[
+              "absolute -left-8 top-1/2 -translate-y-1/2 h-4 w-4 rounded-[3px] border-slate-300 focus:ring-0 focus:ring-offset-0 cursor-pointer",
+              @crm_classes.checkbox
+            ]}
           />
 
           <div class="grid grid-cols-[1fr_32px_1fr] items-center gap-6">
@@ -417,7 +474,7 @@ defmodule SocialScribeWeb.ModalComponents do
               ]}
             />
 
-            <div class="w-8 flex justify-center text-hubspot-arrow">
+            <div class={["w-8 flex justify-center", @crm_classes.arrow]}>
               <.icon name="hero-arrow-long-right" class="h-7 w-7" />
             </div>
 
@@ -425,22 +482,22 @@ defmodule SocialScribeWeb.ModalComponents do
               type="text"
               name={"values[#{@suggestion.field}]"}
               value={@suggestion.new_value}
-              class="block w-full shadow-sm text-sm text-slate-900 bg-white border border-hubspot-input rounded-[7px] py-1.5 px-2 focus:ring-blue-500 focus:border-blue-500"
+              class={[
+                "block w-full shadow-sm text-sm text-slate-900 bg-white border rounded-[7px] py-1.5 px-2 focus:ring-blue-500 focus:border-blue-500",
+                @crm_classes.input
+              ]}
             />
           </div>
         </div>
 
         <div class="mt-3 grid grid-cols-[1fr_32px_1fr] items-start gap-6">
-          <button
-            type="button"
-            class="text-xs text-hubspot-link hover:text-hubspot-link-hover font-medium justify-self-start"
-          >
+          <button type="button" class={["text-xs font-medium justify-self-start", @crm_classes.link]}>
             Update mapping
           </button>
           <span></span>
           <span :if={@suggestion[:timestamp]} class="text-xs text-slate-500 justify-self-start">
             Found in transcript<span
-              class="text-hubspot-link hover:underline cursor-help"
+              class={[@crm_classes.link, "hover:underline cursor-help"]}
               title={@suggestion[:context]}
             >
               ({@suggestion[:timestamp]})
@@ -503,8 +560,16 @@ defmodule SocialScribeWeb.ModalComponents do
   attr :loading_text, :string, default: "Processing..."
   attr :info_text, :string, default: nil
   attr :class, :string, default: nil
+  attr :crm, :atom, default: :hubspot, values: [:hubspot, :salesforce]
 
   def modal_footer(assigns) do
+    crm_classes = %{
+      hubspot: %{cancel: "text-hubspot-cancel"},
+      salesforce: %{cancel: "text-salesforce-cancel"}
+    }
+
+    assigns = assign(assigns, :crm_classes, crm_classes[assigns.crm])
+
     ~H"""
     <div class={["relative pt-6 mt-6 flex items-center justify-between -mx-10 px-10", @class]}>
       <div class="absolute left-0 right-0 top-0 border-t border-slate-200"></div>
@@ -517,7 +582,10 @@ defmodule SocialScribeWeb.ModalComponents do
           :if={@cancel_patch}
           type="button"
           phx-click={Phoenix.LiveView.JS.patch(@cancel_patch)}
-          class="px-5 py-2.5 border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-hubspot-cancel bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class={[
+            "px-5 py-2.5 border border-slate-300 rounded-lg shadow-sm text-sm font-medium bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500",
+            @crm_classes.cancel
+          ]}
         >
           Cancel
         </button>
@@ -525,7 +593,10 @@ defmodule SocialScribeWeb.ModalComponents do
           :if={@cancel_click}
           type="button"
           phx-click={@cancel_click}
-          class="px-5 py-2.5 border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-hubspot-cancel bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class={[
+            "px-5 py-2.5 border border-slate-300 rounded-lg shadow-sm text-sm font-medium bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500",
+            @crm_classes.cancel
+          ]}
         >
           Cancel
         </button>

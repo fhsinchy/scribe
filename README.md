@@ -73,7 +73,7 @@ Social Scribe is a powerful Elixir and Phoenix LiveView application designed to 
 * **Backend:** Elixir, Phoenix LiveView
 * **Database:** PostgreSQL
 * **Background Jobs:** Oban
-* **Authentication:** Ueberauth (for Google, LinkedIn, Facebook, HubSpot OAuth)
+* **Authentication:** Ueberauth (for Google, LinkedIn, Facebook, HubSpot, Salesforce OAuth)
 * **Meeting Transcription:** Recall.ai API
 * **AI Content Generation:** Google Gemini API (Flash models)
 * **Frontend:** Tailwind CSS, Heroicons (via `tailwind.config.js`)
@@ -129,6 +129,9 @@ Follow these steps to get SocialScribe running on your local machine.
         * `HUBSPOT_CLIENT_ID`: Your HubSpot App Client ID.
         * `HUBSPOT_CLIENT_SECRET`: Your HubSpot App Client Secret.
         * `HUBSPOT_REDIRECT_URI`: `"http://localhost:4000/auth/hubspot/callback"`
+        * `SALESFORCE_CLIENT_ID`: Your Salesforce Connected App Consumer Key.
+        * `SALESFORCE_CLIENT_SECRET`: Your Salesforce Connected App Consumer Secret.
+        * `SALESFORCE_REDIRECT_URI`: `"http://localhost:4000/auth/salesforce/callback"`
 
 4.  **Start the Phoenix Server:**
     ```bash
@@ -184,6 +187,46 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 * **Selective Updates:** Checkbox per field allows selective updates; "Update HubSpot" button disabled until at least one field selected
 * **Form Submission:** Batch-updates selected contact properties via `HubspotApi.update_contact`
 * **Click-away Handler:** Closes dropdown without clearing selection
+
+---
+
+## Salesforce Integration
+
+### Salesforce OAuth Setup
+
+1. **Create a Salesforce Developer Edition org** at [developer.salesforce.com](https://developer.salesforce.com/signup).
+2. In Setup, go to **App Manager** and create a new **Connected App**:
+   - Enable OAuth Settings
+   - Set callback URL to `http://localhost:4000/auth/salesforce/callback`
+   - Select OAuth scopes: `full`, `refresh_token`
+   - Enable **Require Proof Key for Code Exchange (PKCE)**
+3. Copy the **Consumer Key** and **Consumer Secret** to your `.env` as `SALESFORCE_CLIENT_ID` and `SALESFORCE_CLIENT_SECRET`.
+
+### How It Works
+
+- Connect Salesforce from the **Settings** page using OAuth.
+- After a meeting is recorded, click the **Salesforce** button on the meeting detail page to open the suggestions modal.
+- **Contact Search:** Type to search Salesforce contacts by name. Select a contact to load their record.
+- **AI Suggestions:** The app uses Gemini to analyze the meeting transcript and suggest updates to the selected contact's fields (phone, email, address, title, etc.).
+- **Review & Apply:** Each suggestion shows the current Salesforce value and the proposed update. Toggle individual suggestions on/off, then click "Update Salesforce" to sync.
+
+### Token Refresh
+
+Salesforce OAuth tokens are automatically refreshed by the `SalesforceTokenRefresher` Oban worker (runs every 5 minutes). Tokens nearing expiration are proactively refreshed to avoid interruptions.
+
+---
+
+## AI Chat Interface
+
+The **Ask Anything** chat interface (`/dashboard/chat`) allows you to ask questions about your CRM contacts using natural language.
+
+### Features
+
+- **Multi-CRM Support:** Works with whichever CRM is connected (HubSpot or Salesforce).
+- **Contact Tagging:** Type `@` followed by a name to search and tag a contact. The tagged contact's CRM data is fetched and included as context for the AI.
+- **Conversation History:** Chat and History tabs let you switch between the current conversation and past conversations.
+- **Auto-titling:** Conversations are automatically titled from the first message.
+- **Source Attribution:** AI responses that reference CRM contacts show source badges indicating the CRM provider.
 
 ---
 

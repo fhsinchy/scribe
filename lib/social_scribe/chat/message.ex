@@ -1,4 +1,8 @@
 defmodule SocialScribe.Chat.Message do
+  @moduledoc """
+  Schema for chat messages. Each message belongs to a conversation and has a role (user or assistant).
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

@@ -69,6 +69,6 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /opt/social-scribe
+            cd ~/scribe
             git pull origin master
             docker compose up --build -d

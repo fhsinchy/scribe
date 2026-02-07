@@ -8,7 +8,6 @@ services:
       PHX_HOST: "social-scribe.farhan.dev"
       PORT: "4000"
       DATABASE_URL: "ecto://postgres:postgres@db:5432/social_scribe"
-      ERL_INETRC: "/app/etc/erl_inetrc"
     depends_on:
       db:
         condition: service_healthy

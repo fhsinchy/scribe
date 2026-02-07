@@ -236,8 +236,12 @@ meetings_data = [
   }
 ]
 
-for {meeting_data, idx} <- Enum.with_index(meetings_data) do
-  slug = meeting_data.summary |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "_")
+for meeting_data <- meetings_data do
+  slug =
+    "#{demo_email}_#{meeting_data.summary}"
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9@.]+/, "_")
+
   event_id = "seed_event_#{slug}"
 
   # Check if this meeting already exists (idempotent)

@@ -1,5 +1,5 @@
 app = 'social-scribe'
-primary_region = 'iad'
+primary_region = 'sin'
 
 [build]
 

@@ -47,7 +47,7 @@ google_credential =
       |> UserCredential.changeset(%{
         user_id: user.id,
         provider: "google",
-        uid: "seed_google_#{System.unique_integer([:positive])}",
+        uid: "seed_google_#{demo_email}",
         token: "seed_token",
         refresh_token: "seed_refresh",
         email: demo_email,

@@ -1,24 +1,41 @@
-defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
+defmodule SocialScribeWeb.MeetingLive.CrmModalComponent do
   @moduledoc """
-  LiveComponent for the Salesforce CRM suggestions modal. Allows users to
-  search for a Salesforce contact, view AI-generated field update suggestions
-  based on the meeting transcript, and sync selected updates back to Salesforce.
+  Shared LiveComponent for CRM suggestion modals. Parameterized by a `:crm`
+  assign (`:hubspot` or `:salesforce`) to handle contact search, AI-generated
+  field update suggestions, and syncing updates back to the CRM.
   """
 
   use SocialScribeWeb, :live_component
 
   import SocialScribeWeb.ModalComponents
 
+  @crm_config %{
+    hubspot: %{
+      title: "Update in HubSpot",
+      modal_id: "hubspot-modal-wrapper",
+      submit_text: "Update HubSpot",
+      submit_class: "bg-hubspot-button hover:bg-hubspot-button-hover"
+    },
+    salesforce: %{
+      title: "Update in Salesforce",
+      modal_id: "salesforce-modal-wrapper",
+      submit_text: "Update Salesforce",
+      submit_class: "bg-salesforce-button hover:bg-salesforce-button-hover"
+    }
+  }
+
   @impl true
   def render(assigns) do
+    config = Map.fetch!(@crm_config, assigns.crm)
     assigns = assign(assigns, :patch, ~p"/dashboard/meetings/#{assigns.meeting}")
-    assigns = assign_new(assigns, :modal_id, fn -> "salesforce-modal-wrapper" end)
+    assigns = assign_new(assigns, :modal_id, fn -> config.modal_id end)
+    assigns = assign(assigns, :config, config)
 
     ~H"""
     <div class="space-y-6">
       <div>
         <h2 id={"#{@modal_id}-title"} class="text-xl font-medium tracking-tight text-slate-900">
-          Update in Salesforce
+          {@config.title}
         </h2>
         <p id={"#{@modal_id}-description"} class="mt-2 text-base font-light leading-7 text-slate-500">
           Here are suggested updates to sync with your integrations based on this
@@ -34,7 +51,7 @@ defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
         query={@query}
         target={@myself}
         error={@error}
-        crm={:salesforce}
+        crm={@crm}
       />
 
       <%= if @selected_contact do %>
@@ -43,6 +60,8 @@ defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
           loading={@loading}
           myself={@myself}
           patch={@patch}
+          config={@config}
+          crm={@crm}
         />
       <% end %>
     </div>
@@ -53,6 +72,8 @@ defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
   attr :loading, :boolean, required: true
   attr :myself, :any, required: true
   attr :patch, :string, required: true
+  attr :config, :map, required: true
+  attr :crm, :atom, required: true
 
   defp suggestions_section(assigns) do
     assigns = assign(assigns, :selected_count, Enum.count(assigns.suggestions, & &1.apply))
@@ -73,22 +94,18 @@ defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
         <% else %>
           <form phx-submit="apply_updates" phx-change="toggle_suggestion" phx-target={@myself}>
             <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-              <.suggestion_card
-                :for={suggestion <- @suggestions}
-                suggestion={suggestion}
-                crm={:salesforce}
-              />
+              <.suggestion_card :for={suggestion <- @suggestions} suggestion={suggestion} crm={@crm} />
             </div>
 
             <.modal_footer
               cancel_patch={@patch}
-              submit_text="Update Salesforce"
-              submit_class="bg-salesforce-button hover:bg-salesforce-button-hover"
+              submit_text={@config.submit_text}
+              submit_class={@config.submit_class}
               disabled={@selected_count == 0}
               loading={@loading}
               loading_text="Updating..."
               info_text={"1 object, #{@selected_count} fields in 1 integration selected to update"}
-              crm={:salesforce}
+              crm={@crm}
             />
           </form>
         <% end %>
@@ -129,7 +146,7 @@ defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
 
     if String.length(query) >= 2 do
       socket = assign(socket, searching: true, error: nil, query: query, dropdown_open: true)
-      send(self(), {:salesforce_search, query, socket.assigns.credential})
+      send(self(), {:crm_search, socket.assigns.crm, query, socket.assigns.credential})
       {:noreply, socket}
     else
       {:noreply, assign(socket, query: query, contacts: [], dropdown_open: query != "")}
@@ -156,7 +173,7 @@ defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
       query =
         "#{socket.assigns.selected_contact.firstname} #{socket.assigns.selected_contact.lastname}"
 
-      send(self(), {:salesforce_search, query, socket.assigns.credential})
+      send(self(), {:crm_search, socket.assigns.crm, query, socket.assigns.credential})
       {:noreply, socket}
     end
   end
@@ -178,7 +195,7 @@ defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
 
       send(
         self(),
-        {:generate_salesforce_suggestions, contact, socket.assigns.meeting,
+        {:crm_generate_suggestions, socket.assigns.crm, contact, socket.assigns.meeting,
          socket.assigns.credential}
       )
 
@@ -239,7 +256,7 @@ defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
 
     send(
       self(),
-      {:apply_salesforce_updates, updates, socket.assigns.selected_contact,
+      {:crm_apply_updates, socket.assigns.crm, updates, socket.assigns.selected_contact,
        socket.assigns.credential}
     )
 

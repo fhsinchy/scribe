@@ -114,6 +114,58 @@ defmodule SocialScribe.AIContentGenerator do
     end
   end
 
+  @impl SocialScribe.AIContentGeneratorApi
+  def generate_chat_response(query, context) do
+    contact_info = format_contact_for_prompt(context[:contact])
+    history = format_history_for_prompt(context[:conversation_history] || [])
+    crm = context[:crm] || "CRM"
+
+    prompt = """
+    You are a helpful CRM assistant. Answer the user's question using the contact data provided from #{crm}.
+
+    #{contact_info}
+
+    #{history}
+
+    User question: #{query}
+
+    Provide a concise, helpful answer based on the contact data. If the data doesn't contain enough information to answer fully, say so clearly.
+    """
+
+    call_gemini(prompt)
+  end
+
+  defp format_contact_for_prompt(nil), do: ""
+
+  defp format_contact_for_prompt(contact) when is_map(contact) do
+    fields =
+      contact
+      |> Enum.reject(fn {_k, v} -> is_nil(v) or v == "" end)
+      |> Enum.map_join("\n", fn {k, v} -> "  #{k}: #{v}" end)
+
+    """
+    Contact data:
+    #{fields}
+    """
+  end
+
+  defp format_history_for_prompt([]), do: ""
+
+  defp format_history_for_prompt(messages) do
+    history =
+      messages
+      |> Enum.take(-10)
+      |> Enum.map_join("\n", fn msg ->
+        role = if msg.role == "user", do: "User", else: "Assistant"
+        "#{role}: #{msg.content}"
+      end)
+
+    """
+    Conversation history:
+    #{history}
+    """
+  end
+
   defp fields_for_crm(:hubspot), do: @hubspot_fields
   defp fields_for_crm(:salesforce), do: @salesforce_fields
 

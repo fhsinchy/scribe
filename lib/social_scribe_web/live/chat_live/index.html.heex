@@ -1,0 +1,269 @@
+<div class="flex flex-col h-[calc(100vh-100px)] max-w-3xl mx-auto bg-white rounded-xl shadow-sm">
+  <%!-- Header --%>
+  <div class="px-6 pt-5 pb-3 border-b border-gray-100">
+    <div class="flex items-center justify-between mb-3">
+      <h1 class="text-xl font-semibold text-gray-900">Ask Anything</h1>
+      <button
+        phx-click="new_chat"
+        class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+        title="New chat"
+      >
+        <.icon name="hero-plus" class="size-5" />
+      </button>
+    </div>
+
+    <%!-- Tabs --%>
+    <div class="flex gap-1">
+      <button
+        phx-click="switch_tab"
+        phx-value-tab="chat"
+        class={[
+          "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
+          @active_tab == :chat && "bg-indigo-600 text-white",
+          @active_tab != :chat && "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+        ]}
+      >
+        Chat
+      </button>
+      <button
+        phx-click="switch_tab"
+        phx-value-tab="history"
+        class={[
+          "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
+          @active_tab == :history && "bg-indigo-600 text-white",
+          @active_tab != :history && "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+        ]}
+      >
+        History
+      </button>
+    </div>
+  </div>
+
+  <%!-- Content area --%>
+  <%= if @active_tab == :chat do %>
+    <%!-- Messages --%>
+    <div
+      id="chat-messages"
+      phx-hook="ScrollBottom"
+      class="flex-1 overflow-y-auto px-6 py-4 space-y-4"
+    >
+      <%= if @messages == [] do %>
+        <div class="flex flex-col items-center justify-center h-full text-gray-400">
+          <.icon name="hero-chat-bubble-left-right" class="size-12 mb-3" />
+          <p class="text-sm">
+            I can answer questions about your contacts and CRM data — just ask!
+          </p>
+          <%= if @crm_provider do %>
+            <p class="text-xs mt-2">
+              Connected to <span class="font-medium capitalize"><%= @crm_provider %></span>. Type
+              <span class="font-mono bg-gray-100 px-1 rounded">@name</span>
+              to tag a contact.
+            </p>
+          <% else %>
+            <p class="text-xs mt-2 text-amber-500">
+              No CRM connected. Connect HubSpot or Salesforce in Settings to search contacts.
+            </p>
+          <% end %>
+        </div>
+      <% else %>
+        <%!-- Timestamp separator --%>
+        <div class="flex items-center gap-3 text-xs text-gray-400 my-2">
+          <div class="flex-1 border-t border-gray-100"></div>
+          <span>{format_timestamp(List.first(@messages))}</span>
+          <div class="flex-1 border-t border-gray-100"></div>
+        </div>
+
+        <%= for message <- @messages do %>
+          <%= if message.role == "user" do %>
+            <%!-- User message (right-aligned bubble) --%>
+            <div class="flex justify-end">
+              <div class="max-w-[80%] bg-indigo-600 text-white rounded-2xl rounded-br-sm px-4 py-2.5">
+                <p class="text-sm whitespace-pre-wrap">{message.content}</p>
+              </div>
+            </div>
+          <% else %>
+            <%!-- Assistant message (left-aligned) --%>
+            <div class="flex justify-start">
+              <div class="max-w-[80%]">
+                <p class="text-sm text-gray-700 whitespace-pre-wrap">{message.content}</p>
+                <%= if message.metadata["sources"] do %>
+                  <div class="flex items-center gap-1.5 mt-2">
+                    <span class="text-xs text-gray-400">Sources</span>
+                    <%= for source <- message.metadata["sources"] do %>
+                      <span class={[
+                        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                        source["crm"] == "hubspot" && "bg-orange-100 text-orange-700",
+                        source["crm"] == "salesforce" && "bg-blue-100 text-blue-700"
+                      ]}>
+                        {source["contact_name"]}
+                      </span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+
+        <%!-- Loading indicator --%>
+        <%= if @loading_response do %>
+          <div class="flex justify-start">
+            <div class="flex items-center gap-1.5 px-4 py-3">
+              <div
+                class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                style="animation-delay: 0ms"
+              >
+              </div>
+              <div
+                class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                style="animation-delay: 150ms"
+              >
+              </div>
+              <div
+                class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                style="animation-delay: 300ms"
+              >
+              </div>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <%!-- Input area --%>
+    <div class="border-t border-gray-100 px-6 py-4">
+      <%!-- Tagged contact indicator --%>
+      <%= if @tagged_contact do %>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xs text-gray-500">Asking about:</span>
+          <span class={[
+            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+            @tagged_contact.crm == "hubspot" && "bg-orange-100 text-orange-700",
+            @tagged_contact.crm == "salesforce" && "bg-blue-100 text-blue-700"
+          ]}>
+            <span class="w-4 h-4 rounded-full bg-current opacity-20 flex items-center justify-center text-[10px]">
+              {String.first(@tagged_contact.name)}
+            </span>
+            {@tagged_contact.name}
+          </span>
+        </div>
+      <% end %>
+
+      <div class="relative" id="chat-input" phx-hook="ChatInput">
+        <%!-- Mention dropdown --%>
+        <%= if @contact_search_results != [] do %>
+          <div class="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+            <%= for contact <- @contact_search_results do %>
+              <button
+                phx-click="tag_contact"
+                phx-value-id={contact.id}
+                phx-value-name={contact.name}
+                phx-value-crm={contact.crm}
+                class="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 text-left transition-colors"
+              >
+                <span class={[
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white",
+                  contact.crm == "hubspot" && "bg-orange-500",
+                  contact.crm == "salesforce" && "bg-blue-500"
+                ]}>
+                  {String.first(contact.name)}
+                </span>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">{contact.name}</p>
+                  <p class="text-xs text-gray-400 capitalize">{contact.crm}</p>
+                </div>
+              </button>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%!-- Input box --%>
+        <div class="flex items-end gap-2 bg-gray-50 rounded-xl px-4 py-3">
+          <textarea
+            rows="1"
+            placeholder="Ask anything about your contacts..."
+            class="flex-1 bg-transparent border-none outline-none resize-none text-sm text-gray-700 placeholder-gray-400 p-0 focus:ring-0"
+            phx-update="ignore"
+            id="chat-textarea"
+          ></textarea>
+          <button
+            type="button"
+            phx-click={JS.dispatch("submit-chat", to: "#chat-input")}
+            class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex-shrink-0"
+          >
+            <.icon name="hero-paper-airplane" class="size-5" />
+          </button>
+        </div>
+
+        <%!-- CRM source indicators --%>
+        <div class="flex items-center gap-2 mt-2 px-1">
+          <span class="text-xs text-gray-400">Sources:</span>
+          <%= if @crm_provider == :hubspot do %>
+            <span
+              class="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center"
+              title="HubSpot"
+            >
+              <span class="text-white text-[10px] font-bold">H</span>
+            </span>
+          <% end %>
+          <%= if @crm_provider == :salesforce do %>
+            <span
+              class="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center"
+              title="Salesforce"
+            >
+              <span class="text-white text-[10px] font-bold">S</span>
+            </span>
+          <% end %>
+          <%= if is_nil(@crm_provider) do %>
+            <span class="text-xs text-gray-400 italic">No CRM connected</span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <%!-- History tab --%>
+    <div class="flex-1 overflow-y-auto px-6 py-4">
+      <%= if @conversations == [] do %>
+        <div class="flex flex-col items-center justify-center h-full text-gray-400">
+          <.icon name="hero-clock" class="size-12 mb-3" />
+          <p class="text-sm">No chat history yet</p>
+          <p class="text-xs mt-1">Start a conversation in the Chat tab</p>
+        </div>
+      <% else %>
+        <div class="space-y-1">
+          <%= for conversation <- @conversations do %>
+            <div class="group flex items-center gap-2">
+              <button
+                phx-click="select_conversation"
+                phx-value-id={conversation.id}
+                class={[
+                  "flex-1 flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors hover:bg-gray-50",
+                  @current_conversation && @current_conversation.id == conversation.id &&
+                    "bg-indigo-50"
+                ]}
+              >
+                <.icon name="hero-chat-bubble-left" class="size-5 text-gray-400 flex-shrink-0" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate">
+                    {conversation.title || "Untitled conversation"}
+                  </p>
+                  <p class="text-xs text-gray-400">
+                    {format_date(conversation.updated_at)}
+                  </p>
+                </div>
+              </button>
+              <button
+                phx-click="delete_conversation"
+                phx-value-id={conversation.id}
+                class="hidden group-hover:block p-1.5 text-gray-400 hover:text-red-500 rounded transition-colors"
+                title="Delete"
+              >
+                <.icon name="hero-trash" class="size-4" />
+              </button>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

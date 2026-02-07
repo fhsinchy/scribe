@@ -79,6 +79,9 @@ defmodule SocialScribeWeb.Router do
       live "/settings", UserSettingsLive, :index
       live "/settings/facebook_pages", UserSettingsLive, :facebook_pages
 
+      live "/chat", ChatLive.Index, :index
+      live "/chat/:conversation_id", ChatLive.Index, :show
+
       live "/meetings", MeetingLive.Index, :index
       live "/meetings/:id", MeetingLive.Show, :show
       live "/meetings/:id/draft_post/:automation_result_id", MeetingLive.Show, :draft_post

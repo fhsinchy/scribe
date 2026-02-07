@@ -18,8 +18,6 @@ defmodule SocialScribeWeb.UserSessionController do
     create(conn, params, "Welcome back!")
   end
 
-  # TODO: Add Google OAuth login
-
   defp create(conn, %{"user" => user_params}, info) do
     %{"email" => email, "password" => _password} = user_params
 

@@ -109,6 +109,26 @@
       </div>
     </div>
 
+    <div :if={@salesforce_credential} class="bg-white shadow-xl rounded-lg p-6 md:p-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-2xl font-semibold text-slate-700">Salesforce Integration</h2>
+          <p class="text-sm text-slate-500 mt-1">
+            Update CRM contacts with information from this meeting
+          </p>
+        </div>
+        <.link
+          patch={~p"/dashboard/meetings/#{@meeting}/salesforce"}
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#00A1E0] hover:bg-[#0082B6] transition-colors"
+        >
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M10.05 6.14C10.72 5.38 11.64 4.88 12.68 4.88c1.27 0 2.38.73 3.02 1.78.55-.24 1.15-.38 1.78-.38 2.48 0 4.5 2.02 4.5 4.5s-2.02 4.5-4.5 4.5c-.28 0-.55-.03-.81-.08-.57.84-1.52 1.4-2.61 1.4-.46 0-.9-.1-1.29-.29-.52.93-1.51 1.57-2.66 1.57-1.35 0-2.49-.89-2.88-2.11-.14.01-.28.02-.43.02-2.07 0-3.75-1.68-3.75-3.75 0-1.73 1.18-3.19 2.78-3.61.26-1.56 1.59-2.76 3.22-2.76.63 0 1.22.18 1.72.48z" />
+          </svg>
+          Update Salesforce Contact
+        </.link>
+      </div>
+    </div>
+
     <.transcript_content meeting_transcript={@meeting.meeting_transcript} />
     <div class="bg-white shadow-xl rounded-lg p-6 md:p-8">
       <h2 class="text-2xl font-semibold mb-4 text-slate-700">Attendees</h2>
@@ -169,3 +189,18 @@
     modal_id="hubspot-modal-wrapper"
   />
 </.hubspot_modal>
+
+<.salesforce_modal
+  :if={@live_action == :salesforce && @salesforce_credential}
+  id="salesforce-modal-wrapper"
+  show
+  on_cancel={JS.patch(~p"/dashboard/meetings/#{@meeting}")}
+>
+  <.live_component
+    module={SocialScribeWeb.MeetingLive.SalesforceModalComponent}
+    id="salesforce-modal"
+    meeting={@meeting}
+    credential={@salesforce_credential}
+    modal_id="salesforce-modal-wrapper"
+  />
+</.salesforce_modal>

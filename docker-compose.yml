@@ -7,8 +7,27 @@ services:
       PHX_SERVER: "true"
       PHX_HOST: "social-scribe.farhan.dev"
       PORT: "4000"
+      DATABASE_URL: "ecto://postgres:postgres@db:5432/social_scribe"
     depends_on:
-      - caddy
+      db:
+        condition: service_healthy
+      caddy:
+        condition: service_started
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_scribe
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-ONLY", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   caddy:
     image: caddy:2
@@ -22,5 +41,6 @@ services:
       - caddy_config:/config
 
 volumes:
+  pgdata:
   caddy_data:
   caddy_config:

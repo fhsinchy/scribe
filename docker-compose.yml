@@ -3,11 +3,13 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       PHX_SERVER: "true"
       PHX_HOST: "social-scribe.farhan.dev"
       PORT: "4000"
-      DATABASE_URL: "ecto://postgres:postgres@db:5432/social_scribe"
+      DATABASE_URL: "ecto://postgres:postgres@host.docker.internal:5432/social_scribe"
     depends_on:
       db:
         condition: service_healthy
@@ -17,6 +19,8 @@ services:
   db:
     image: postgres:16
     restart: unless-stopped
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -33,8 +37,8 @@ services:
     image: caddy:2
     restart: unless-stopped
     ports:
-      - "8080:80"
-      - "8443:443"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data

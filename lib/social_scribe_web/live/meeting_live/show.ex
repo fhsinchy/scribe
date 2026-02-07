@@ -1,4 +1,10 @@
 defmodule SocialScribeWeb.MeetingLive.Show do
+  @moduledoc """
+  LiveView for the meeting detail page. Displays the transcript, AI-generated
+  follow-up email, automation results, and provides access to HubSpot and
+  Salesforce CRM suggestion modals.
+  """
+
   use SocialScribeWeb, :live_view
 
   import SocialScribeWeb.PlatformLogo

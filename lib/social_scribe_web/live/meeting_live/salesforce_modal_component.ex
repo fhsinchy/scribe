@@ -1,4 +1,10 @@
 defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
+  @moduledoc """
+  LiveComponent for the Salesforce CRM suggestions modal. Allows users to
+  search for a Salesforce contact, view AI-generated field update suggestions
+  based on the meeting transcript, and sync selected updates back to Salesforce.
+  """
+
   use SocialScribeWeb, :live_component
 
   import SocialScribeWeb.ModalComponents

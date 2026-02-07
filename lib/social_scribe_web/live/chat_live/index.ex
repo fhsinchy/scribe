@@ -1,4 +1,10 @@
 defmodule SocialScribeWeb.ChatLive.Index do
+  @moduledoc """
+  LiveView for the AI chat interface. Allows users to ask questions about
+  CRM contacts by tagging them with @mentions. Queries HubSpot or Salesforce
+  depending on which is connected, and maintains conversation history.
+  """
+
   use SocialScribeWeb, :live_view
 
   require Logger

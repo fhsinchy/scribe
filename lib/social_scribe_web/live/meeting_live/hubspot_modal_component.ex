@@ -1,4 +1,10 @@
 defmodule SocialScribeWeb.MeetingLive.HubspotModalComponent do
+  @moduledoc """
+  LiveComponent for the HubSpot CRM suggestions modal. Allows users to
+  search for a HubSpot contact, view AI-generated field update suggestions
+  based on the meeting transcript, and sync selected updates back to HubSpot.
+  """
+
   use SocialScribeWeb, :live_component
 
   import SocialScribeWeb.ModalComponents

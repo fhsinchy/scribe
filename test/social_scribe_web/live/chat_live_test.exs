@@ -131,6 +131,109 @@ defmodule SocialScribeWeb.ChatLiveTest do
       html = render(view)
       assert html =~ "I&#39;m sorry, I wasn&#39;t able to generate a response"
     end
+
+    test "sending empty message is a no-op", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/chat")
+
+      view |> render_hook("send_message", %{"content" => ""})
+
+      html = render(view)
+      # Still showing intro, no conversation created
+      assert html =~ "I can answer questions about your contacts"
+    end
+
+    test "sending whitespace-only message is a no-op", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/chat")
+
+      view |> render_hook("send_message", %{"content" => "   "})
+
+      html = render(view)
+      assert html =~ "I can answer questions about your contacts"
+    end
+
+    test "delete_conversation removes from history", %{conn: conn, user: user} do
+      conversation = conversation_fixture(%{user_id: user.id, title: "To delete"})
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard/chat")
+
+      # Switch to history
+      view |> element("button", "History") |> render_click()
+      html = render(view)
+      assert html =~ "To delete"
+
+      # Delete the conversation
+      view |> render_hook("delete_conversation", %{"id" => to_string(conversation.id)})
+
+      html = render(view)
+      refute html =~ "To delete"
+    end
+
+    test "delete_conversation resets if current conversation is deleted", %{
+      conn: conn,
+      user: user
+    } do
+      conversation = conversation_fixture(%{user_id: user.id, title: "Current chat"})
+      message_fixture(%{conversation_id: conversation.id, content: "Some message"})
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard/chat/#{conversation.id}")
+
+      html = render(view)
+      assert html =~ "Some message"
+
+      # Delete the current conversation
+      view |> render_hook("delete_conversation", %{"id" => to_string(conversation.id)})
+
+      html = render(view)
+      # Messages should be cleared
+      refute html =~ "Some message"
+    end
+
+    test "conversation auto-titles from first message", %{conn: conn} do
+      SocialScribe.AIContentGeneratorMock
+      |> expect(:generate_chat_response, fn _query, _context ->
+        {:ok, "Sure, here is some info."}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard/chat")
+
+      view |> render_hook("send_message", %{"content" => "What is the weather today?"})
+
+      :timer.sleep(100)
+
+      # Switch to history to see the auto-titled conversation
+      view |> element("button", "History") |> render_click()
+      html = render(view)
+      assert html =~ "What is the weather today?"
+    end
+
+    test "multiple messages reuse the same conversation", %{conn: conn} do
+      SocialScribe.AIContentGeneratorMock
+      |> expect(:generate_chat_response, 2, fn _query, _context ->
+        {:ok, "AI response"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard/chat")
+
+      # Send first message
+      view |> render_hook("send_message", %{"content" => "First message"})
+      :timer.sleep(100)
+
+      # Send second message
+      view |> render_hook("send_message", %{"content" => "Second message"})
+      :timer.sleep(100)
+
+      html = render(view)
+      assert html =~ "First message"
+      assert html =~ "Second message"
+
+      # Verify only one conversation was created
+      conversations =
+        SocialScribe.Chat.list_user_conversations(
+          hd(SocialScribe.Repo.all(SocialScribe.Accounts.User)).id
+        )
+
+      assert length(conversations) == 1
+    end
   end
 
   describe "ChatLive with HubSpot" do
@@ -286,6 +389,66 @@ defmodule SocialScribeWeb.ChatLiveTest do
       :timer.sleep(100)
       html = render(view)
       assert html =~ "Jane Smith"
+    end
+
+    test "shows mention hint when Salesforce connected", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/dashboard/chat")
+
+      assert html =~ "@name"
+      assert html =~ "tag a contact"
+    end
+
+    test "tagging a Salesforce contact sets context", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/chat")
+
+      view
+      |> render_hook("tag_contact", %{
+        "id" => "SF001",
+        "name" => "Jane Smith",
+        "crm" => "salesforce"
+      })
+
+      html = render(view)
+      assert html =~ "Jane Smith"
+      assert html =~ "Asking about"
+    end
+
+    test "sends message with tagged Salesforce contact and receives response", %{conn: conn} do
+      SocialScribe.SalesforceApiMock
+      |> expect(:get_contact, fn _credential, "SF001" ->
+        {:ok,
+         %{
+           id: "SF001",
+           firstname: "Jane",
+           lastname: "Smith",
+           email: "jane@example.com",
+           display_name: "Jane Smith"
+         }}
+      end)
+
+      SocialScribe.AIContentGeneratorMock
+      |> expect(:generate_chat_response, fn query, context ->
+        assert query =~ "Tell me about @Jane Smith"
+        assert context[:crm] == :salesforce
+        {:ok, "Jane Smith is a contact in your Salesforce CRM."}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard/chat")
+
+      # Tag the contact
+      view
+      |> render_hook("tag_contact", %{
+        "id" => "SF001",
+        "name" => "Jane Smith",
+        "crm" => "salesforce"
+      })
+
+      # Send message
+      view |> render_hook("send_message", %{"content" => "Tell me about @Jane Smith"})
+
+      :timer.sleep(100)
+      html = render(view)
+      assert html =~ "Jane Smith is a contact in your Salesforce CRM."
     end
   end
 end

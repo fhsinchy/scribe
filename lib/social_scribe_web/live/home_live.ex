@@ -1,4 +1,9 @@
 defmodule SocialScribeWeb.HomeLive do
+  @moduledoc """
+  LiveView for the dashboard home page. Displays upcoming calendar events
+  and allows toggling the notetaker bot for each meeting.
+  """
+
   use SocialScribeWeb, :live_view
 
   alias SocialScribe.Calendar

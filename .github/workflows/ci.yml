@@ -55,3 +55,20 @@ jobs:
       - run: mix format --check-formatted
       - run: mix ecto.create && mix ecto.migrate
       - run: mix test
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/social-scribe
+            git pull origin master
+            docker compose up --build -d

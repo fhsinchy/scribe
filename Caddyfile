@@ -1,0 +1,3 @@
+social-scribe.farhan.dev {
+	reverse_proxy app:4000
+}
